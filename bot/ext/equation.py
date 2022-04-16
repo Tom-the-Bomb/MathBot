@@ -175,7 +175,10 @@ class EquationSolver:
 class ManualButton(discord.ui.Button):
 
     view: ManualModeView
-    SYMBOL_CONV = {'𝑥': 'x'}
+    SYMBOL_CONV = {
+        '𝑥': 'x',
+        '÷': '/',
+    }
     
     def __init__(self, label: str, *, style: discord.ButtonStyle = discord.ButtonStyle.grey, row: int):
         super().__init__(style=style, label=str(label), row=row)
@@ -228,7 +231,7 @@ class ManualButton(discord.ui.Button):
             return await self.edit(interaction)
 
         elif self.label == '⌫':
-            self.view.equation = self.view.expression[:-1]
+            self.view.equation = self.view.equation[:-1]
             return await self.edit(interaction)
 
         elif self.label == 'Close':
@@ -240,13 +243,6 @@ class ManualButton(discord.ui.Button):
             return await self.edit(interaction)
 
 class ManualModeView(AuthorOnlyView):
-
-    BUTTONS: ClassVar[tuple[tuple[int | str, ...], ...]] = (
-        (1, 2, 3, '+', '⌫'),
-        (4, 5, 6, '-', 'C'),
-        (7, 8, 9, '𝑥', 'Close'),
-        ('.', '0', '=', 'Enter', 'ⓘ'),
-    )
 
     def __init__(
         self, 
@@ -262,16 +258,36 @@ class ManualModeView(AuthorOnlyView):
         self.etype = etype
         self.equation: str = ''
 
+        if self.etype == Etype.linear2:
+            self.BUTTONS: tuple[tuple[int | str, ...], ...] = (
+                (1, 2, 3, '+', '⌫'),
+                (4, 5, 6, '-', 'C'),
+                (7, 8, 9, '𝑥', 'Close'),
+                ('.', '0', '=', 'Enter', 'ⓘ'),
+            )
+        elif self.etype == Etype.linear3:
+            self.BUTTONS: tuple[tuple[int | str, ...], ...] = (
+                (1, 2, 3, '+', '𝑥'),
+                (4, 5, 6, '-', '('),
+                (7, 8, 9, '÷', ')'),
+                ('.', '0', '=', '\u200b', '\u200b'),
+                ('Enter', '⌫', 'C', 'Close', 'ⓘ'),
+            )
+
         for i, row in enumerate(self.BUTTONS):
             for button in row:
                 style = (
                     discord.ButtonStyle.green if button == 'Enter' else
-                    discord.ButtonStyle.blurple if button in ('+', '-', '𝑥') else
+                    discord.ButtonStyle.blurple if button in ('+', '-', '÷', '𝑥', '(', ')') else
                     discord.ButtonStyle.red if button in ('⌫', 'C', 'Close', 'ⓘ') else
                     discord.ButtonStyle.gray
                 )
                 
                 item = ManualButton(button, style=style, row=i)
+
+                if button == '\u200b':
+                    item.disabled = True
+                    
                 self.add_item(item)
 
 class VarInput(discord.ui.Modal, title='Variable Input'):
