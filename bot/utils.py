@@ -5,6 +5,7 @@ import asyncio
 import discord
 
 __all__: tuple[str, ...] = (
+    'InvalidEquation',
     'Number',
     'NUM_PAT',
     'num',
@@ -18,6 +19,9 @@ T = TypeVar('T')
 
 Number: TypeAlias = int | float
 NUM_PAT = r'[-+]?\d+\.?\d*'
+
+class InvalidEquation(Exception):
+    pass
 
 def num(n: str) -> Number:
     n = float(n)

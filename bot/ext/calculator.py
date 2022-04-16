@@ -60,7 +60,7 @@ class CalcButton(discord.ui.Button):
         content = 'ERROR' if error else self.view.expression
         content = content or '\u200b'
         content += ' ' * (40 - len(content))
-        embed = discord.Embed(description=f'```py\n{content}\n```', color=self.view.ctx.bot.color)
+        embed = discord.Embed(description=f'```ansi\n\u001b[0;32m{content}\n```', color=self.view.ctx.bot.color)
         return await interaction.response.edit_message(embed=embed)
 
     async def callback(self, interaction: discord.Interaction):
@@ -73,7 +73,7 @@ class CalcButton(discord.ui.Button):
             except Exception:
                 return await self.edit(interaction, error=True)
 
-        elif self.label == 'Help':
+        elif self.label == 'ⓘ':
             embed = discord.Embed(title='Simple Calculator', color=self.view.ctx.bot.color)
             embed.description = (
                 '• A simple calculator, for performing simple arithmetic operations\n'
@@ -81,7 +81,7 @@ class CalcButton(discord.ui.Button):
                 '• Press the buttons to enter numbers and operators\n'
                 '• Hit `=` to evaluate the entered expression\n'
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         elif self.label == 'C':
             self.view.expression = ''
@@ -105,7 +105,7 @@ class CalculatorView(AuthorOnlyView):
         (1, 2, 3, '+', '⌫'),
         (4, 5, 6, '-', 'C'),
         (7, 8, 9, '×', 'Close'),
-        ('.', '0', '=', '÷', 'Help'),
+        ('.', '0', '=', '÷', 'ⓘ'),
     )
 
     def __init__(
@@ -124,8 +124,8 @@ class CalculatorView(AuthorOnlyView):
             for button in row:
                 style = (
                     discord.ButtonStyle.green if button == '=' else
-                    discord.ButtonStyle.blurple if button in ('+', '-', '*', '/') else
-                    discord.ButtonStyle.red if button in ('⌫', 'C', 'Close', 'Help') else
+                    discord.ButtonStyle.blurple if button in ('+', '-', '×', '÷') else
+                    discord.ButtonStyle.red if button in ('⌫', 'C', 'Close', 'ⓘ') else
                     discord.ButtonStyle.gray
                 )
                 
