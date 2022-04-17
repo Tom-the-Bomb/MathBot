@@ -32,16 +32,29 @@ INSTRUCTIONS_3STEP = (
     '• with the format: `y = x(a + b) / (c + d)`'
 )
 
+INSTRUCTIONS_ABCD = (
+    '• Solves the formula `(a + b * c) / d`\n'
+    '• with the provided values for a, b, c and d'
+)
+
 class Etype(Enum):
     linear2 = '2 Step Linear'
     linear3 = '3 Step Linear'
-    quadratic = 'Quadratic'
+    abcdformula = '`(a + b * c) / d`'
 
 def eq_from_etype(etype: Etype) -> str:
-    return 'y=mx+b' if etype == Etype.linear2 else r'y=\frac{x(a+b)}{c+d}'
+    return (
+        'y=mx+b' if etype == Etype.linear2 else
+        r'y=\frac{x(a+b)}{c+d}' if etype == Etype.linear3 else
+        r'\frac{a+b\times%20c}{d}'
+    )
 
 def em_from_etype(etype: Etype, color: int | discord.Color = None) -> discord.Embed:
-    inst = INSTRUCTIONS_2STEP if etype == Etype.linear2 else INSTRUCTIONS_3STEP
+    inst = (
+        INSTRUCTIONS_2STEP if etype == Etype.linear2 else 
+        INSTRUCTIONS_3STEP if etype == Etype.linear3 else
+        INSTRUCTIONS_ABCD
+    )
     embed = discord.Embed(title=f'{etype.value} Equation Solver', description=inst, color=color)
     return embed
 
@@ -99,7 +112,7 @@ class EquationSolver:
         
         assert self.equation or self.variables
         
-    def evaluate(self) -> Optional[tuple[Number, Number, Number, Number, str]]:
+    def evaluate(self) -> Optional[tuple[Number, Number, Number, Number, str] | str]:
         
         if self.etype == Etype.linear2:
 
@@ -172,11 +185,44 @@ class EquationSolver:
             )
             return ab, 0, x, xab, steps # m, b, x, y, steps
 
+        elif self.etype == Etype.abcdformula:
+
+            if not (
+                (a := num(self.variables.get('a', 0))) and 
+                (b := num(self.variables.get('b', 0))) and 
+                (c := num(self.variables.get('c', 0))) and
+                (d := num(self.variables.get('d', 0)))
+            ):
+                if terms := re.match(fr'\(({NUM_PAT})(\+|-)({NUM_PAT})\*({NUM_PAT})\)/({NUM_PAT})', self.equation):
+                    a = num(terms.group(1))
+
+                    op = terms.group(2)
+                    b = num(terms.group(3))
+                    b = -b if op == '-' else b
+
+                    c = num(terms.group(4))
+                    d = num(terms.group(5))
+                else:
+                    raise InvalidEquation()
+
+            bc = b * c
+            abc = a + bc
+            abcd = abc / d
+
+            steps = (
+                f'= {self.equation or f"({a} + {b} × {c}) / {d}"}\n'
+                f'= {a} + {bc}\n'
+                f'= {abc} / {d}\n'
+                f'= {abcd}\n'
+            )
+            return steps
+
 class ManualButton(discord.ui.Button):
 
     view: ManualModeView
     SYMBOL_CONV = {
         '𝑥': 'x',
+        '×': '*',
         '÷': '/',
     }
     
@@ -190,23 +236,35 @@ class ManualButton(discord.ui.Button):
         embed = discord.Embed(description=f'```ansi\n\u001b[0;32m{content}\n```', color=self.view.ctx.bot.color)
         return await interaction.response.edit_message(embed=embed)
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> discord.Message:
 
         if self.label == 'Enter':
             try:
-                results = EquationSolver(self.view.equation, etype=self.view.etype).evaluate()
-                steps = results[-1]
-                graph = await linear_graph(*results[:-1])
-                graph = discord.File(graph, 'graph.png')
+                if self.view.etype == Etype.abcdformula:
+                    steps = EquationSolver(self.view.equation, etype=self.view.etype).evaluate()
+                    assert isinstance(steps, str)
+                    
+                    embed = discord.Embed(
+                        title='Solution:',
+                        description=f'```py\n{steps}\n```',
+                        color=self.view.ctx.bot.color
+                    )
 
-                embed = discord.Embed(
-                    title='Solution:',
-                    description=f'```py\n{steps}\n```',
-                    color=self.view.ctx.bot.color
-                )
-                embed.set_image(url='attachment://graph.png')
+                    return await interaction.response.edit_message(embed=embed, attachments=[], view=None)
+                else:
+                    results = EquationSolver(self.view.equation, etype=self.view.etype).evaluate()
+                    steps = results[-1]
+                    graph = await linear_graph(*results[:-1])
+                    graph = discord.File(graph, 'graph.png')
 
-                return await interaction.response.edit_message(embed=embed, attachments=[graph], view=None)
+                    embed = discord.Embed(
+                        title='Solution:',
+                        description=f'```py\n{steps}\n```',
+                        color=self.view.ctx.bot.color
+                    )
+                    embed.set_image(url='attachment://graph.png')
+
+                    return await interaction.response.edit_message(embed=embed, attachments=[graph], view=None)
             except InvalidEquation:
                 return await self.edit(interaction, error=True)
             except Exception as e:
@@ -215,7 +273,11 @@ class ManualButton(discord.ui.Button):
                 )
 
         elif self.label == 'ⓘ':
-            eq_format = 'y = mx + b' if self.view.etype == Etype.linear2 else 'y = x(a + b) / (c + d)'
+            eq_format = (
+                'y = mx + b' if self.view.etype == Etype.linear2 else 
+                'y = x(a + b) / (c + d)' if self.view.etype == Etype.linear3 else
+                '(a + b * c) / d'
+            )
             embed = discord.Embed(title='Equation Solver - Manual Mode', color=self.view.ctx.bot.color)
             embed.description = (
                 '• Equation Solver\n'
@@ -243,6 +305,7 @@ class ManualButton(discord.ui.Button):
             return await self.edit(interaction)
 
 class ManualModeView(AuthorOnlyView):
+    BUTTONS: tuple[tuple[int | str, ...], ...]
 
     def __init__(
         self, 
@@ -259,18 +322,26 @@ class ManualModeView(AuthorOnlyView):
         self.equation: str = ''
 
         if self.etype == Etype.linear2:
-            self.BUTTONS: tuple[tuple[int | str, ...], ...] = (
+            self.BUTTONS = (
                 (1, 2, 3, '+', '⌫'),
                 (4, 5, 6, '-', 'C'),
                 (7, 8, 9, '𝑥', 'Close'),
                 ('.', '0', '=', 'Enter', 'ⓘ'),
             )
         elif self.etype == Etype.linear3:
-            self.BUTTONS: tuple[tuple[int | str, ...], ...] = (
+            self.BUTTONS = (
                 (1, 2, 3, '+', '𝑥'),
                 (4, 5, 6, '-', '('),
                 (7, 8, 9, '÷', ')'),
                 ('.', '0', '=', '\u200b', '\u200b'),
+                ('Enter', '⌫', 'C', 'Close', 'ⓘ'),
+            )
+        elif self.etype == Etype.abcdformula:
+            self.BUTTONS = (
+                (1, 2, 3, '+', '𝑥'),
+                (4, 5, 6, '-', '('),
+                (7, 8, 9, '×', ')'),
+                ('.', '0', '=', '÷', '\u200b'),
                 ('Enter', '⌫', 'C', 'Close', 'ⓘ'),
             )
 
@@ -278,7 +349,7 @@ class ManualModeView(AuthorOnlyView):
             for button in row:
                 style = (
                     discord.ButtonStyle.green if button == 'Enter' else
-                    discord.ButtonStyle.blurple if button in ('+', '-', '÷', '𝑥', '(', ')') else
+                    discord.ButtonStyle.blurple if button in ('+', '-', '÷', '×', '𝑥', '(', ')') else
                     discord.ButtonStyle.red if button in ('⌫', 'C', 'Close', 'ⓘ') else
                     discord.ButtonStyle.gray
                 )
@@ -320,8 +391,12 @@ class VarInput(discord.ui.Modal, title='Variable Input'):
             embed = em_from_etype(etype, color=self.button.view.ctx.bot.color)
         
             remove_latex = self.button.view.latex_eq.replace(r'\frac', '\u0000')
+            remove_latex = remove_latex.replace(r'\times', '\u0001')
+
             remove_latex = remove_latex.replace(self.variable, value)
-            self.button.view.latex_eq = remove_latex.replace('\u0000', r'\frac')
+
+            replace_latex = remove_latex.replace('\u0000', r'\frac')
+            self.button.view.latex_eq = replace_latex.replace('\u0001', r'\times')
 
             img = await render_latex(self.button.view.ctx.bot.session, self.button.view.latex_eq)
             embed.set_image(url='attachment://equation.png')
@@ -339,24 +414,39 @@ class VarButton(discord.ui.Button):
     value: Number
 
     def __init__(self, label: str, *, style: discord.ButtonStyle = discord.ButtonStyle.blurple, row: int = None):
-        super().__init__(style=style, label=str(label))
+        super().__init__(style=style, label=str(label), row=row)
 
     async def callback(self, interaction: discord.Interaction):
 
         if self.label == 'Enter':
-            results = EquationSolver(etype=self.view.etype, **self.view.equation_vars).evaluate()
-            steps = results[-1]
-            graph = await linear_graph(*results[:-1])
-            graph = discord.File(graph, 'graph.png')
 
-            embed = discord.Embed(
-                title='Solution:',
-                description=f'```py\n{steps}\n```',
-                color=self.view.ctx.bot.color
-            )
-            embed.set_image(url='attachment://graph.png')
+            if self.view.etype == Etype.abcdformula:
+                steps = EquationSolver(etype=self.view.etype, **self.view.equation_vars).evaluate()
+                assert isinstance(steps, str)
+                
+                embed = discord.Embed(
+                    title='Solution:',
+                    description=f'```py\n{steps}\n```',
+                    color=self.view.ctx.bot.color
+                )
 
-            return await interaction.response.edit_message(embed=embed, attachments=[graph], view=None)
+                return await interaction.response.edit_message(embed=embed, attachments=[], view=None)
+
+            else:
+                results = EquationSolver(etype=self.view.etype, **self.view.equation_vars).evaluate()
+                steps = results[-1]
+                graph = await linear_graph(*results[:-1])
+                graph = discord.File(graph, 'graph.png')
+
+                embed = discord.Embed(
+                    title='Solution:',
+                    description=f'```py\n{steps}\n```',
+                    color=self.view.ctx.bot.color
+                )
+                embed.set_image(url='attachment://graph.png')
+
+                return await interaction.response.edit_message(embed=embed, attachments=[graph], view=None)
+
         elif self.label == 'manual mode':
             ctx = self.view.ctx
             spaces = ' ' * 40
@@ -387,16 +477,14 @@ class EquationView(AuthorOnlyView):
         self.equation_vars: dict[str, Number] = {}
         self.latex_eq = eq_from_etype(etype)
 
-        inputs = ('y', 'm', 'b') if self.etype == Etype.linear2 else ('y', 'a', 'b', 'c', 'd')
+        inputs = (
+            ('y', 'm', 'b') if self.etype == Etype.linear2 else 
+            ('y', 'a', 'b', 'c', 'd') if self.etype == Etype.linear3 else 
+            ('a', 'b', 'c', 'd')
+        )
 
         for var in inputs:
             self.add_item(VarButton(var))
-
-        if (amt := len(self.children)) < 5:
-            for _ in range(5 - amt):
-                blank = VarButton('\u200b', style=discord.ButtonStyle.gray)
-                blank.disabled = True
-                self.add_item(blank)
 
         self.add_item(VarButton('manual mode', style=discord.ButtonStyle.red, row=1))
 
@@ -412,7 +500,8 @@ class EquationSelect(discord.ui.Select):
 
         options = [
             discord.SelectOption(value=Etype.linear2.name, label='2 step linear equation'),
-            discord.SelectOption(value=Etype.linear3.name, label='3 step linear equation'), 
+            discord.SelectOption(value=Etype.linear3.name, label='3 step linear equation'),
+            discord.SelectOption(value=Etype.abcdformula.name, label='Solve: (a + b * c) / d'),
         ]
 
         super().__init__(
