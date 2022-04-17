@@ -5,6 +5,8 @@ from typing import Optional, ClassVar
 from io import BytesIO
 from enum import Enum
 import re
+import math
+import cmath
 
 import discord
 from discord.ext import commands
@@ -37,23 +39,31 @@ INSTRUCTIONS_ABCD = (
     '• with the provided values for a, b, c and d'
 )
 
+INSTRUCTIONS_QUAD = (
+    '• Solves a quadratic equation\n'
+    '• with the format: `ax^2 + bx + c`'
+)
+
 class Etype(Enum):
     linear2 = '2 Step Linear'
     linear3 = '3 Step Linear'
     abcdformula = '`(a + b * c) / d`'
+    quadratic = 'Quadratic'
 
 def eq_from_etype(etype: Etype) -> str:
     return (
         'y=mx+b' if etype == Etype.linear2 else
         r'y=\frac{x(a+b)}{c+d}' if etype == Etype.linear3 else
-        r'\frac{a+b\times%20c}{d}'
+        r'\frac{a+b\times%20c}{d}' if etype == Etype.abcdformula else
+        r'y=ax^2+bx+c'
     )
 
 def em_from_etype(etype: Etype, color: int | discord.Color = None) -> discord.Embed:
     inst = (
         INSTRUCTIONS_2STEP if etype == Etype.linear2 else 
         INSTRUCTIONS_3STEP if etype == Etype.linear3 else
-        INSTRUCTIONS_ABCD
+        INSTRUCTIONS_ABCD  if etype == Etype.abcdformula else
+        INSTRUCTIONS_QUAD
     )
     embed = discord.Embed(title=f'{etype.value} Equation Solver', description=inst, color=color)
     return embed
@@ -70,15 +80,31 @@ async def render_latex(session: aiohttp.ClientSession, latex: str) -> discord.Fi
         return await render_latex(session, latex)
 
 @to_thread
-def linear_graph(m: Number, b: Number, x: Number, y: Number) -> BytesIO:
+def plot_graph(*, etype: Etype, **variables: dict[str, Number]) -> BytesIO:
 
     plt.style.use(["fast", "fivethirtyeight", "ggplot"])
     plt.style.use("bmh")
     buffer = BytesIO()
+
+    x = variables.get('x')
+    y = variables.get('y')
     
-    lim = abs(x) * 3
+    if isinstance(x, tuple):
+        lim = abs(x[-1]) * 3
+    else:
+        lim = abs(x) * 3
+
     x_ = np.linspace(-lim, lim, 100)
-    y_  = [(m * i + b) for i in x_]
+
+    if etype in (Etype.linear2, Etype.linear3):
+        m = variables.get('m')
+        b = variables.get('b')
+        y_  = [(m * i + b) for i in x_]
+    elif etype == Etype.quadratic:
+        a = variables.get('a')
+        b = variables.get('b')
+        c = variables.get('c')
+        y_  = [(a * i ** 2 + b * i + c) for i in x_]
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -89,9 +115,14 @@ def linear_graph(m: Number, b: Number, x: Number, y: Number) -> BytesIO:
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
 
-    plt.plot(x,y, 'r')
     plt.plot(x_, y_)
-    plt.plot(x, y, marker='o')
+    
+    if isinstance(x, tuple):
+        for root in x:
+            plt.plot(root, y, marker='o')
+    else:
+        plt.plot(x, y, marker='o')
+
     plt.savefig(buffer)
     plt.close()
 
@@ -112,15 +143,17 @@ class EquationSolver:
         
         assert self.equation or self.variables
         
-    def evaluate(self) -> Optional[tuple[Number, Number, Number, Number, str] | str]:
+    def evaluate(self) -> Optional[dict[str, Number | str] | str]:
         
         if self.etype == Etype.linear2:
 
-            if not (
-                (m := num(self.variables.get('m', 0))) and 
-                (b := num(self.variables.get('b', 0))) and 
-                (y := num(self.variables.get('y', 0)))
+            if (
+                (m := self.variables.get('m')) is not None and 
+                (b := self.variables.get('b')) is not None and 
+                (y := self.variables.get('y')) is not None
             ):
+                m, b, y = num(m), num(b), num(y)
+            else:
                 if terms := re.match(fr'({NUM_PAT})(=)({NUM_PAT})\*?(x)(\+|-)({NUM_PAT})', self.equation):
                     y = num(terms.group(1))
                     m = num(terms.group(3))
@@ -143,17 +176,25 @@ class EquationSolver:
                 f'𝑥 = {mx} / {m}\n'+
                 f'𝑥 = {x}'
             )
-            return m, b, x, y, steps
+            return {
+                'm': m, 
+                'b': b,
+                'x': x,
+                'y': y,
+                'steps': steps
+            }
             
         elif self.etype == Etype.linear3:
 
-            if not (
-                (a := num(self.variables.get('a', 0))) and 
-                (b := num(self.variables.get('b', 0))) and 
-                (c := num(self.variables.get('c', 0))) and
-                (d := num(self.variables.get('d', 0))) and 
-                (y := num(self.variables.get('y', 0)))
+            if (
+                (a := self.variables.get('a')) is not None and 
+                (b := self.variables.get('b')) is not None and 
+                (c := self.variables.get('c')) is not None and
+                (d := self.variables.get('d')) is not None and 
+                (y := self.variables.get('y')) is not None
             ):
+                a, b, c, d, y = num(a), num(b), num(c), num(d), num(y)
+            else:
                 if terms := re.match(fr'({NUM_PAT})=x\*?\(({NUM_PAT})(\+|-)({NUM_PAT})\)/\(({NUM_PAT})(\+|-)({NUM_PAT})', self.equation):
 
                     y = num(terms.group(1))
@@ -168,7 +209,7 @@ class EquationSolver:
                     d = num(terms.group(7))
                     d = -d if op2 == '-' else d
                 else:
-                    raise InvalidEquation()
+                    raise InvalidEquation() 
             
             ab =  a + b
             cd = c + d
@@ -183,16 +224,100 @@ class EquationSolver:
                f'𝑥 = {xab} / {ab}\n'+
                f'𝑥 = {x}\n'
             )
-            return ab, 0, x, xab, steps # m, b, x, y, steps
+            return {
+                'm': ab, 
+                'b': 0,
+                'x': x,
+                'y': xab,
+                'steps': steps
+            }
 
+        elif self.etype == Etype.quadratic:
+
+            if (
+                (a := self.variables.get('a')) is not None and 
+                (b := self.variables.get('b')) is not None and 
+                (c := self.variables.get('c')) is not None and
+                (y := self.variables.get('y')) is not None
+            ):  
+                a, b, c, y = num(a), num(b), num(c), num(y)
+            else:
+                if terms := re.match(fr'({NUM_PAT})=({NUM_PAT})x\^2(\+|-)({NUM_PAT})x(\+|-)({NUM_PAT})', self.equation):
+                    y = num(terms.group(1))
+
+                    a = num(terms.group(2))
+                    op1 = terms.group(3)
+                    b = num(terms.group(4))
+                    b = -b if op1 == '-' else b
+
+                    op2 = terms.group(5)
+                    c = num(terms.group(6))
+                    c = -c if op2 == '-' else c
+                else:
+                    raise InvalidEquation()
+                
+            cy = c - y
+            a2 = 2 * a
+            b24ac = b ** 2 - 4 * a * cy
+
+            try:
+                sqrtv = math.sqrt(b24ac)
+            except ValueError:
+                sqrtv = cmath.sqrt(b24ac)
+
+            if b24ac == 0:
+                roots = (-b / a2,)
+            else:
+                bplus = -b + sqrtv
+                roots1 = bplus / a2
+
+                bminus = -b - sqrtv
+                roots2 = bminus / a2
+                roots = (roots1, roots2)
+
+            steps = (
+                f'{self.equation or f"{y} = {a}𝑥² + {b}𝑥 + {c}"}\n'
+                f'0 = {a}𝑥² + {b}𝑥 + {cy}\n'
+                f'𝑥 = ({-b} ± √({b}² - 4 * {a} * {c})) / (2 * {a})\n'
+                f'𝑥 = ({-b} ± √{b24ac}) / {a2}\n'
+            )
+
+            if b24ac == 0:
+                steps += (
+                    f'𝑥 = {-b} / {a2}'
+                    f'𝑥 = {roots[0]}'
+                )
+            else:
+                steps += (
+                    f'𝑥 = ({-b} ± {sqrtv}) / {a2}\n'
+                    'Positive root:\n'
+                    f'𝑥 = ({-b} + {sqrtv}) / {a2}\n'
+                    f'𝑥 = {bplus} / {a2}\n'
+                    f'𝑥 = {roots1}\n'
+                    'Negative root:\n'
+                    f'𝑥 = ({-b} - {sqrtv}) / {a2}\n'
+                    f'𝑥 = {bminus} / {a2}\n'
+                    f'𝑥 = {roots2}\n'
+                )
+            return {
+                'a': a,
+                'b': b,
+                'c': c,
+                'x': roots,
+                'y': y,
+                'steps': steps,
+            }
+            
         elif self.etype == Etype.abcdformula:
 
-            if not (
-                (a := num(self.variables.get('a', 0))) and 
-                (b := num(self.variables.get('b', 0))) and 
-                (c := num(self.variables.get('c', 0))) and
-                (d := num(self.variables.get('d', 0)))
+            if (
+                (a := self.variables.get('a')) is not None and 
+                (b := self.variables.get('b')) is not None and 
+                (c := self.variables.get('c')) is not None and
+                (d := self.variables.get('d')) is not None
             ):
+                a, b, c, d = num(a), num(b), num(c), num(d)
+            else:
                 if terms := re.match(fr'\(({NUM_PAT})(\+|-)({NUM_PAT})\*({NUM_PAT})\)/({NUM_PAT})', self.equation):
                     a = num(terms.group(1))
 
@@ -224,6 +349,7 @@ class ManualButton(discord.ui.Button):
         '𝑥': 'x',
         '×': '*',
         '÷': '/',
+        '𝑥²': '^2'
     }
     
     def __init__(self, label: str, *, style: discord.ButtonStyle = discord.ButtonStyle.grey, row: int):
@@ -253,8 +379,8 @@ class ManualButton(discord.ui.Button):
                     return await interaction.response.edit_message(embed=embed, attachments=[], view=None)
                 else:
                     results = EquationSolver(self.view.equation, etype=self.view.etype).evaluate()
-                    steps = results[-1]
-                    graph = await linear_graph(*results[:-1])
+                    steps = results.pop('steps')
+                    graph = await plot_graph(**results, etype=self.view.etype)
                     graph = discord.File(graph, 'graph.png')
 
                     embed = discord.Embed(
@@ -276,7 +402,8 @@ class ManualButton(discord.ui.Button):
             eq_format = (
                 'y = mx + b' if self.view.etype == Etype.linear2 else 
                 'y = x(a + b) / (c + d)' if self.view.etype == Etype.linear3 else
-                '(a + b * c) / d'
+                '(a + b * c) / d' if self.view.etype == Etype.abcdformula else
+                'ax^2 + bx + c'
             )
             embed = discord.Embed(title='Equation Solver - Manual Mode', color=self.view.ctx.bot.color)
             embed.description = (
@@ -344,12 +471,20 @@ class ManualModeView(AuthorOnlyView):
                 ('.', '0', '=', '÷', '\u200b'),
                 ('Enter', '⌫', 'C', 'Close', 'ⓘ'),
             )
+        elif self.etype == Etype.quadratic:
+            self.BUTTONS = (
+                (1, 2, 3, '+', '⌫'),
+                (4, 5, 6, '-', 'C'),
+                (7, 8, 9, '𝑥', 'Close'),
+                ('.', '0', '=', '𝑥²', 'Enter'),
+                ('ⓘ', '\u200b', '\u200b', '\u200b', '\u200b')
+            )
 
         for i, row in enumerate(self.BUTTONS):
             for button in row:
                 style = (
                     discord.ButtonStyle.green if button == 'Enter' else
-                    discord.ButtonStyle.blurple if button in ('+', '-', '÷', '×', '𝑥', '(', ')') else
+                    discord.ButtonStyle.blurple if button in ('+', '-', '÷', '×', '𝑥', '𝑥²', '(', ')') else
                     discord.ButtonStyle.red if button in ('⌫', 'C', 'Close', 'ⓘ') else
                     discord.ButtonStyle.gray
                 )
@@ -403,7 +538,8 @@ class VarInput(discord.ui.Modal, title='Variable Input'):
 
             self.button.disabled = True
 
-            if all(child.disabled for child in self.button.view.children[:5]):
+            first_row = (button for button in self.button.view.children if button.row in (0, None))
+            if all(child.disabled for child in first_row):
                 self.button.view.children[-1].disabled = False
 
             return await interaction.response.edit_message(embed=embed, attachments=[img], view=self.button.view)
@@ -418,7 +554,9 @@ class VarButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
 
-        if self.label == 'Enter':
+        if self.label == 'Cancel':
+            return await interaction.message.delete()
+        elif self.label == 'Enter':
 
             if self.view.etype == Etype.abcdformula:
                 steps = EquationSolver(etype=self.view.etype, **self.view.equation_vars).evaluate()
@@ -434,8 +572,8 @@ class VarButton(discord.ui.Button):
 
             else:
                 results = EquationSolver(etype=self.view.etype, **self.view.equation_vars).evaluate()
-                steps = results[-1]
-                graph = await linear_graph(*results[:-1])
+                steps = results.pop('steps')
+                graph = await plot_graph(**results, etype=self.view.etype)
                 graph = discord.File(graph, 'graph.png')
 
                 embed = discord.Embed(
@@ -480,12 +618,14 @@ class EquationView(AuthorOnlyView):
         inputs = (
             ('y', 'm', 'b') if self.etype == Etype.linear2 else 
             ('y', 'a', 'b', 'c', 'd') if self.etype == Etype.linear3 else 
-            ('a', 'b', 'c', 'd')
+            ('a', 'b', 'c', 'd') if self.etype == Etype.abcdformula else
+            ('y', 'a', 'b', 'c')
         )
 
         for var in inputs:
             self.add_item(VarButton(var))
 
+        self.add_item(VarButton('Cancel', style=discord.ButtonStyle.red, row=1))
         self.add_item(VarButton('manual mode', style=discord.ButtonStyle.red, row=1))
 
         enter = VarButton('Enter', style=discord.ButtonStyle.green, row=1)
@@ -501,6 +641,7 @@ class EquationSelect(discord.ui.Select):
         options = [
             discord.SelectOption(value=Etype.linear2.name, label='2 step linear equation'),
             discord.SelectOption(value=Etype.linear3.name, label='3 step linear equation'),
+            discord.SelectOption(value=Etype.quadratic.name, label='Quadratic equation'),
             discord.SelectOption(value=Etype.abcdformula.name, label='Solve: (a + b * c) / d'),
         ]
 
