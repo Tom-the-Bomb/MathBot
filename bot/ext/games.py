@@ -20,7 +20,7 @@ class Games(commands.Cog):
 
     def __init__(self, bot: MathBot) -> None:
         self.bot = bot
-        self.twenty_48_emojis = {
+        self.twenty_48_emojis: dict[str, str] = {
             "0":    "<:grey:821404552783855658>", 
             "2":    "<:twoo:821396924619161650>", 
             "4":    "<:fourr:821396936870723602>", 
