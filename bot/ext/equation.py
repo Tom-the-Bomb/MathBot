@@ -65,7 +65,7 @@ class Etype(Enum):
         'name': '3 Step Linear',
         'latex': r'y=\frac{x(a+b)}{c+d}',
         'instructions': INSTRUCTIONS_3STEP + END,
-        'equation': 'y = mx + b',
+        'equation': 'y = x(a + b) / (c + d)',
         'vars': ('y', 'a', 'b', 'c', 'd'),
         'buttons': (
             (1, 2, 3, '+', '𝑥'),
@@ -79,7 +79,7 @@ class Etype(Enum):
         'name': '`(a + b * c) / d`',
         'latex': r'\frac{a+b\times%20c}{d}',
         'instructions': INSTRUCTIONS_ABCD + END,
-        'equation': 'y = mx + b',
+        'equation': '(a + b * c) / d',
         'vars': ('a', 'b', 'c', 'd'),
         'buttons': (
             (1, 2, 3, '+', '𝑥'),
@@ -93,7 +93,7 @@ class Etype(Enum):
         'name': 'Quadratic',
         'latex': 'y=ax^2+bx+c',
         'instructions': INSTRUCTIONS_QUAD + END,
-        'equation': 'y = mx + b',
+        'equation': 'ax^2 + bx + c',
         'vars': ('y', 'a', 'b', 'c'),
         'buttons': (
             (1, 2, 3, '+', '⌫'),

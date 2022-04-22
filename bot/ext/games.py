@@ -18,8 +18,7 @@ from ..bot import MathBot
 
 class Games(commands.Cog):
 
-    def __init__(self, bot: MathBot):
-        self._cog_name = "Game commands ..."
+    def __init__(self, bot: MathBot) -> None:
         self.bot = bot
         self.twenty_48_emojis = {
             "0":    "<:grey:821404552783855658>", 
@@ -86,18 +85,14 @@ class Games(commands.Cog):
 
     @commands.command(name="typerace", aliases=["tr"])
     @commands.max_concurrency(2, commands.BucketType.channel)
-    async def typerace(self, ctx: MathContext, mode: str = "--sentence"):
-        mode = mode.lower()
-        if mode not in ("--sentence", "--random"):
-            return await ctx.send("Gamemode must be either `--sentence` or `--random` : defaults to `--sentence`")
+    async def typerace(self, ctx: MathContext):
 
         game = typeracer.TypeRacer()
         await game.start(
             ctx, 
             embed_color=ctx.bot.color,
             path_to_text_font='bot/assets/segoe-ui-semilight-411.ttf',
-            timeout=30, 
-            mode=mode[2:]
+            timeout=30,
         )
 
     @commands.command(name="battleship", aliases=["bs"])
