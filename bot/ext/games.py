@@ -109,7 +109,7 @@ class Games(commands.Cog):
     @commands.command(name="wordle", aliases=["wd"])
     @commands.max_concurrency(2, commands.BucketType.user)
     async def _worldle(self, ctx: MathContext):
-        game = wordle_buttons.BetaWordle()
+        game = wordle_buttons.BetaWordle(color=ctx.bot.color)
         await game.start(ctx)
 
 async def setup(bot: MathBot) -> None:
