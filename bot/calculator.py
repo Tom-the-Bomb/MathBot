@@ -4,11 +4,9 @@ from typing import ClassVar
 import re
 
 import discord
-from discord.ext import commands
 
-from ..utils import *
-from ..bot import MathBot
-from ..context import MathContext
+from .utils import *
+from .context import MathContext
 
 class Calculator:
     operators: ClassVar[tuple[str, ...]] = ("/", "*", "-", "+")    
@@ -134,20 +132,3 @@ class CalculatorView(AuthorOnlyView):
                     item.disabled = True
 
                 self.add_item(item)
-
-class CalculatorCog(commands.Cog):
-
-    def __init__(self, bot: MathBot) -> None:
-        self.bot = bot
-
-    @commands.command(name='calculator', aliases=['calc'])
-    @commands.cooldown(1, 10, commands.BucketType.user)
-    async def calculator(self, ctx: MathContext) -> discord.Message:
-        spaces = ' ' * 40
-        return await ctx.send(
-            embed=discord.Embed(description=f'```py\n\u200b{spaces}\u200b\n```', color=self.bot.color), 
-            view=CalculatorView(ctx, ctx.author, timeout=300)
-        )
-
-async def setup(bot: MathBot) -> None:
-    await bot.add_cog(CalculatorCog(bot))

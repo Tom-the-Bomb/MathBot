@@ -1,4 +1,5 @@
 # MathBot
+- A mathematics bot that is completely overkill for what it needs to be
 ---
 
 ### How to run your own instance:

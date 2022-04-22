@@ -117,10 +117,13 @@ class MathBot(commands.Bot):
 
         if isinstance(error, commands.CommandNotFound):
             return
+        elif isinstance(error, commands.CommandOnCooldown):
+            return await ctx.send('you are on cooldown.')
         else:
             trace = traceback.format_exception(type(error), error, error.__traceback__)
             trace = f"```py\n{''.join(trace)}\n```"
             
             if len(trace) > 2000:
-                code = await ctx.bot.post_mystbin(trace)
-                return await ctx.send(code)
+                trace = await ctx.bot.post_mystbin(trace)
+
+            return await ctx.send(trace)

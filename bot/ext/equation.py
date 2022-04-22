@@ -18,6 +18,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot as plt
 
+from ..calculator import CalculatorView
 from ..utils import *
 from ..bot import MathBot
 from ..context import MathContext
@@ -644,6 +645,7 @@ class EquationSelect(discord.ui.Select):
     def __init__(self, bot: MathBot) -> None:
 
         options = [
+            discord.SelectOption(value='CALCULATOR', label='Arithmetic Calculator'),
             discord.SelectOption(value=Etype.linear2.name, label='2 step linear equation'),
             discord.SelectOption(value=Etype.linear3.name, label='3 step linear equation'),
             discord.SelectOption(value=Etype.quadratic.name, label='Quadratic equation'),
@@ -660,8 +662,15 @@ class EquationSelect(discord.ui.Select):
         self.bot = bot
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        value = self.values[0]
+        if value == 'CALCULATOR':
+            spaces = ' ' * 40
+            return await interaction.response.edit_message(
+                embed=discord.Embed(description=f'```py\n\u200b{spaces}\u200b\n```', color=self.bot.color), 
+                view=CalculatorView(self.view.ctx, self.view.ctx.author, timeout=300)
+            )
         
-        etype = Etype[self.values[0]]
+        etype = Etype[value]
 
         equation = etype.value['latex']
         embed = em_from_etype(etype, self.view.ctx.bot.color)
@@ -690,7 +699,7 @@ class EquationsCog(commands.Cog):
     def __init__(self, bot: MathBot) -> None:
         self.bot = bot
 
-    @commands.command(name='equation', aliases=['eq'])
+    @commands.command(name='solve')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def solve_equation(self, ctx: MathContext) -> discord.Message:
         embed = discord.Embed(
