@@ -67,6 +67,9 @@ class MathBot(commands.Bot):
             if not ext.endswith(".py"):
                 continue
 
+            if ext == '__init__.py':
+                continue
+
             await self.load_extension('bot.ext.' + ext[:-3])
         return None
 
@@ -119,6 +122,8 @@ class MathBot(commands.Bot):
             return
         elif isinstance(error, commands.CommandOnCooldown):
             return await ctx.send('you are on cooldown.')
+        elif isinstance(error, commands.MaxConcurrencyReached):
+            return await ctx.send('max concurrency reached for this command')
         else:
             trace = traceback.format_exception(type(error), error, error.__traceback__)
             trace = f"```py\n{''.join(trace)}\n```"

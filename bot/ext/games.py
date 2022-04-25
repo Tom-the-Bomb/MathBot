@@ -1,14 +1,5 @@
-from Discord_Games import (
-    hangman, 
-    tictactoe, 
-    twenty_48_buttons, 
-    ChessGame, 
-    connect_four, 
-    aki_buttons, 
-    typeracer, 
-    battleship, 
-    wordle_buttons,
-)
+import Discord_Games as games
+from Discord_Games import button_games
 
 import discord
 from discord.ext import commands
@@ -40,7 +31,7 @@ class Games(commands.Cog):
     @commands.command(name="connect4", aliases=["c4"])
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def connect4(self, ctx: MathContext, member: discord.Member):
-        game = connect_four.ConnectFour(
+        game = games.ConnectFour(
             red  = ctx.author,         
             blue = member,             
         )
@@ -49,7 +40,7 @@ class Games(commands.Cog):
     @commands.command(name="tictactoe", aliases=["ttt"])
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def tictactoe(self, ctx: MathContext, member: discord.Member):
-        game = tictactoe.Tictactoe(
+        game = button_games.BetaTictactoe(
             cross  = ctx.author, 
             circle = member
         )
@@ -58,13 +49,13 @@ class Games(commands.Cog):
     @commands.command(name="hangman")
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def hangman(self, ctx: MathContext):
-        game = hangman.Hangman()
+        game = games.Hangman()
         await game.start(ctx, delete_after_guess=True)
 
     @commands.command(name="chess")
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def chess(self, ctx: MathContext, member: discord.Member):
-        game = ChessGame.Chess(
+        game = games.Chess(
             white = ctx.author, 
             black = member
         )
@@ -73,38 +64,43 @@ class Games(commands.Cog):
     @commands.command(name="twenty48", aliases=["2048"])
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def twenty48(self, ctx: MathContext):
-        game = twenty_48_buttons.BetaTwenty48(self.twenty_48_emojis)
-        await game.start(ctx)
+        game = button_games.BetaTwenty48(self.twenty_48_emojis)
+        await game.start(ctx, delete_button=True)
 
     @commands.command(name="guess", aliases=["aki", "guesscharacter", "characterguess", "akinator"])
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def guess(self, ctx: MathContext):
         async with ctx.typing():
-            game = aki_buttons.BetaAkinator()
+            game = button_games.BetaAkinator()
             await game.start(ctx, timeout=120, delete_button=True)
 
     @commands.command(name="typerace", aliases=["tr"])
     @commands.max_concurrency(2, commands.BucketType.channel)
     async def typerace(self, ctx: MathContext):
 
-        game = typeracer.TypeRacer()
+        game = games.TypeRacer()
         await game.start(
             ctx, 
             embed_color=ctx.bot.color,
-            path_to_text_font='bot/assets/segoe-ui-semilight-411.ttf',
             timeout=30,
         )
 
     @commands.command(name="battleship", aliases=["bs"])
     @commands.max_concurrency(1, commands.BucketType.user)
     async def _battleship(self, ctx: MathContext, member: discord.Member):
-        game = battleship.BattleShip(ctx.author, member)
+        game = games.BattleShip(ctx.author, member)
         await game.start(ctx)
 
     @commands.command(name="wordle", aliases=["wd"])
-    @commands.max_concurrency(2, commands.BucketType.user)
+    @commands.max_concurrency(1, commands.BucketType.user)
     async def _worldle(self, ctx: MathContext):
-        game = wordle_buttons.BetaWordle(color=ctx.bot.color)
+        game = button_games.BetaWordle(color=ctx.bot.color)
+        await game.start(ctx)
+
+    @commands.command(name="memory-game", aliases=["mem"])
+    @commands.max_concurrency(1, commands.BucketType.user)
+    async def _memory_game(self, ctx: MathContext):
+        game = button_games.MemoryGame()
         await game.start(ctx)
 
 async def setup(bot: MathBot) -> None:
