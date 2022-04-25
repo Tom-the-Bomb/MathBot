@@ -8,6 +8,8 @@ import discord
 from .utils import *
 from .context import MathContext
 
+NUM_PAT = r'\d+\.?\d*'
+
 class Calculator:
     operators: ClassVar[tuple[str, ...]] = ("/", "*", "-", "+")    
        
@@ -17,11 +19,11 @@ class Calculator:
     def __str__(self) -> str:
         def recur(op) -> None:
             self.sub_regex(op)
-            if re.search(fr"({NUM_PAT}\{op}{NUM_PAT})", self.expression):
+            if re.search(fr"(-?{NUM_PAT}\{op}-?{NUM_PAT})", self.expression):
                 recur(op)
 
         for op in self.operators:
-            if re.search(fr"({NUM_PAT}\{op}{NUM_PAT})", self.expression):
+            if re.search(fr"(-?{NUM_PAT}\{op}-?{NUM_PAT})", self.expression):
                 recur(op)
         return self.expression
 
@@ -38,7 +40,7 @@ class Calculator:
             return str(conv.get(operator)(x, y))
         try:
             self.expression = re.sub(
-                fr"({NUM_PAT}\{operator}{NUM_PAT})", sub_fn, self.expression
+                fr"(-?{NUM_PAT}\{operator}-?{NUM_PAT})", sub_fn, self.expression
             )
         except TypeError:
             pass
