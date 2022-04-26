@@ -27,12 +27,12 @@ class MathBot(commands.Bot):
             case_insensitive=True, 
             status=discord.Status.idle,
             activity=discord.Game('beep boop'),
-            **kwargs
+            **kwargs,
         )
 
         self.session: Optional[ClientSession] = None
 
-        self._token:  str = self.config['TOKEN']
+        self._token: str = self.config['TOKEN']
 
         logger = logging.getLogger('discord')
         logger.setLevel(logging.INFO)
