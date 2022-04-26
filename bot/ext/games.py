@@ -1,3 +1,5 @@
+from typing import Optional
+
 import Discord_Games as games
 from Discord_Games import button_games
 
@@ -101,6 +103,12 @@ class Games(commands.Cog):
     @commands.max_concurrency(1, commands.BucketType.user)
     async def _memory_game(self, ctx: MathContext):
         game = button_games.MemoryGame()
+        await game.start(ctx)
+
+    @commands.command(name="rockpaperscissors", aliases=["rps"])
+    @commands.max_concurrency(1, commands.BucketType.user)
+    async def _rps(self, ctx: MathContext, member: Optional[discord.Member] = None):
+        game = button_games.BetaRockPaperScissors(member)
         await game.start(ctx)
 
 async def setup(bot: MathBot) -> None:
