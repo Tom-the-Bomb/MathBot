@@ -51,8 +51,8 @@ class Games(commands.Cog):
     @commands.command(name="hangman")
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def hangman(self, ctx: MathContext):
-        game = games.Hangman()
-        await game.start(ctx, delete_after_guess=True)
+        game = button_games.BetaHangman()
+        await game.start(ctx)
 
     @commands.command(name="chess")
     @commands.max_concurrency(1, commands.BucketType.channel)
