@@ -111,5 +111,11 @@ class Games(commands.Cog):
         game = button_games.BetaRockPaperScissors(member)
         await game.start(ctx)
 
+    @commands.command(name="reaction", aliases=["react"])
+    @commands.max_concurrency(1, commands.BucketType.user)
+    async def reaction(self, ctx: MathContext):
+        game = button_games.BetaReactionGame()
+        await game.start(ctx)
+
 async def setup(bot: MathBot) -> None:
     await bot.add_cog(Games(bot))
