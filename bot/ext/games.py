@@ -117,5 +117,11 @@ class Games(commands.Cog):
         game = button_games.BetaReactionGame()
         await game.start(ctx)
 
+    @commands.command(name="country", aliases=["cg"])
+    @commands.max_concurrency(1, commands.BucketType.channel)
+    async def country(self, ctx: MathContext):
+        game = games.CountryGuesser()
+        await game.start(ctx)
+
 async def setup(bot: MathBot) -> None:
     await bot.add_cog(Games(bot))
