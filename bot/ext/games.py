@@ -57,11 +57,11 @@ class Games(commands.Cog):
     @commands.command(name="chess")
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def chess(self, ctx: MathContext, member: discord.Member):
-        game = games.Chess(
+        game = button_games.BetaChess(
             white = ctx.author, 
             black = member
         )
-        await game.start(ctx, timeout=60, add_reaction_after_move=True)
+        await game.start(ctx)
 
     @commands.command(name="twenty48", aliases=["2048"])
     @commands.max_concurrency(1, commands.BucketType.channel)
@@ -90,7 +90,7 @@ class Games(commands.Cog):
     @commands.command(name="battleship", aliases=["bs"])
     @commands.max_concurrency(1, commands.BucketType.user)
     async def _battleship(self, ctx: MathContext, member: discord.Member):
-        game = games.BattleShip(ctx.author, member)
+        game = button_games.BetaBattleShip(ctx.author, member)
         await game.start(ctx)
 
     @commands.command(name="wordle", aliases=["wd"])
@@ -120,7 +120,7 @@ class Games(commands.Cog):
     @commands.command(name="country", aliases=["cg"])
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def country(self, ctx: MathContext):
-        game = games.CountryGuesser()
+        game = button_games.BetaCountryGuesser()
         await game.start(ctx)
 
 async def setup(bot: MathBot) -> None:
