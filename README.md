@@ -11,8 +11,8 @@
 1. Install a `>=3.10` python interpreter assuming you have not done so already [here](https://www.python.org/downloads/release/python-3100/).
 2. if you have `git` installed you can clone the repository with:
 
-    ```powershell
-    PS > git clone https://github.com/Tom-the-Bomb/MathBot.git
+    ```bash
+    git clone https://github.com/Tom-the-Bomb/MathBot.git
     ```
 
     - __If you do not__: install and configure git
@@ -20,7 +20,7 @@
 3. Install the requrements with (in the repository directory):
 
     ```powershell
-    PS > py -m pip install -r requirements.txt
+    py -m pip install -r requirements.txt
     ```
 
 4. create a `config.json` file in the project directory and have this in it:
@@ -34,8 +34,8 @@
     }
     ```
 
-5. `cd` into the project directory and run the bot using
+5. `cd` into the project's directory and run the bot using
 
     ```PS
-    PS > py launcher.py
+    py launcher.py
     ```
