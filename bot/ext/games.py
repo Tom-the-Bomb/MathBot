@@ -1,7 +1,7 @@
 from typing import Optional
 
-import Discord_Games as games
-from Discord_Games import button_games
+import discord_games as games
+from discord_games import button_games
 
 import discord
 from discord.ext import commands
@@ -14,13 +14,13 @@ class Games(commands.Cog):
     def __init__(self, bot: MathBot) -> None:
         self.bot = bot
         self.twenty_48_emojis: dict[str, str] = {
-            "0":    "<:grey:821404552783855658>", 
-            "2":    "<:twoo:821396924619161650>", 
-            "4":    "<:fourr:821396936870723602>", 
-            "8":    "<:eightt:821396947029983302>", 
-            "16":   "<:sixteen:821396959616958534>", 
-            "32":   "<:thirtytwo:821396969632169994>", 
-            "64":   "<:sixtyfour:821396982869524563>", 
+            "0":    "<:grey:821404552783855658>",
+            "2":    "<:twoo:821396924619161650>",
+            "4":    "<:fourr:821396936870723602>",
+            "8":    "<:eightt:821396947029983302>",
+            "16":   "<:sixteen:821396959616958534>",
+            "32":   "<:thirtytwo:821396969632169994>",
+            "64":   "<:sixtyfour:821396982869524563>",
             "128":  "<:onetwentyeight:821396997776998472>",
             "256":  "<:256:821397009394827306>",
             "512":  "<:512:821397040247865384>",
@@ -34,16 +34,16 @@ class Games(commands.Cog):
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def connect4(self, ctx: MathContext, member: discord.Member):
         game = games.ConnectFour(
-            red  = ctx.author,         
-            blue = member,             
+            red  = ctx.author,
+            blue = member,
         )
         await game.start(ctx)
-    
+
     @commands.command(name="tictactoe", aliases=["ttt"])
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def tictactoe(self, ctx: MathContext, member: discord.Member):
         game = button_games.BetaTictactoe(
-            cross  = ctx.author, 
+            cross  = ctx.author,
             circle = member
         )
         await game.start(ctx)
@@ -58,7 +58,7 @@ class Games(commands.Cog):
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def chess(self, ctx: MathContext, member: discord.Member):
         game = button_games.BetaChess(
-            white = ctx.author, 
+            white = ctx.author,
             black = member
         )
         await game.start(ctx)
@@ -82,7 +82,7 @@ class Games(commands.Cog):
 
         game = games.TypeRacer()
         await game.start(
-            ctx, 
+            ctx,
             embed_color=ctx.bot.color,
             timeout=30,
         )

@@ -19,12 +19,12 @@ class MathBot(commands.Bot):
 
         self.load_config()
         self._default_prefixes: list[str] = self.config['DEFAULT_PREFIXES']
-        
+
         super().__init__(
-            command_prefix=commands.when_mentioned_or(*self._default_prefixes), 
+            command_prefix=commands.when_mentioned_or(*self._default_prefixes),
             description='A basic bot for aquarists',
             intents=discord.Intents.all(),
-            case_insensitive=True, 
+            case_insensitive=True,
             status=discord.Status.idle,
             activity=discord.Game('beep boop'),
             **kwargs,
@@ -57,7 +57,7 @@ class MathBot(commands.Bot):
     def run(self, *args, **kwargs) -> None:
         token: str = kwargs.pop('token', self._token)
         return super().run(token, *args, **kwargs)
-    
+
     async def load_all_cogs(self, *, jishaku: bool = True) -> None:
 
         if jishaku:
@@ -81,7 +81,7 @@ class MathBot(commands.Bot):
 
     async def start(self, *args, **kwargs) -> None:
         self.session = ClientSession()
-        
+
         await self.load_all_cogs()
         return await super().start(*args, **kwargs)
 
@@ -127,7 +127,7 @@ class MathBot(commands.Bot):
         else:
             trace = traceback.format_exception(type(error), error, error.__traceback__)
             trace = f"```py\n{''.join(trace)}\n```"
-            
+
             if len(trace) > 2000:
                 trace = await ctx.bot.post_mystbin(trace)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, ClassVar
+from typing import Optional
 
 from io import BytesIO
 from enum import Enum
@@ -106,7 +106,7 @@ class Etype(Enum):
 
 def em_from_etype(etype: Etype, color: int | discord.Color = None) -> discord.Embed:
     embed = discord.Embed(
-        title=f"{etype.value['name']} Equation Solver", 
+        title=f"{etype.value['name']} Equation Solver",
         description=etype.value['instructions'],
         color=color
     )
@@ -132,7 +132,7 @@ def plot_graph(*, etype: Etype, **variables: dict[str, Number]) -> BytesIO:
 
     x = variables.get('x')
     y = variables.get('y')
-    
+
     if isinstance(x, tuple):
         lim = abs(x[-1]) * 3
     else:
@@ -160,7 +160,7 @@ def plot_graph(*, etype: Etype, **variables: dict[str, Number]) -> BytesIO:
     ax.yaxis.set_ticks_position('left')
 
     plt.plot(x_, y_)
-    
+
     if isinstance(x, tuple):
         for root in x:
             plt.plot(root, y, marker='o')
@@ -184,16 +184,16 @@ class EquationSolver:
             raise TypeError('Inapproporite keyword argument names')
 
         self.variables = variables
-        
+
         assert self.equation or self.variables
-        
+
     def evaluate(self) -> Optional[dict[str, Number | str] | str]:
-        
+
         if self.etype == Etype.linear2:
 
             if (
-                (m := self.variables.get('m')) is not None and 
-                (b := self.variables.get('b')) is not None and 
+                (m := self.variables.get('m')) is not None and
+                (b := self.variables.get('b')) is not None and
                 (y := self.variables.get('y')) is not None
             ):
                 m, b, y = num(m), num(b), num(y)
@@ -206,35 +206,35 @@ class EquationSolver:
                     b = -b if op == '-' else b
                 else:
                     raise InvalidEquation()
-            
+
             mx = y - b
             x = mx / m
 
             steps = (
                 f'{self.equation or f"{y} = {m}𝑥 + {b}"}\n'+
                 (
-                    f'{m}𝑥 = {y} - {b}\n' if b > 0 else 
-                    f'{m}𝑥 = {y} + {abs(b)}\n' if b < 0 else 
+                    f'{m}𝑥 = {y} - {b}\n' if b > 0 else
+                    f'{m}𝑥 = {y} + {abs(b)}\n' if b < 0 else
                     f'{m}𝑥 = {y}\n'
                 ) +
                 f'𝑥 = {mx} / {m}\n'+
                 f'𝑥 = {x}'
             )
             return {
-                'm': m, 
+                'm': m,
                 'b': b,
                 'x': x,
                 'y': y,
                 'steps': steps
             }
-            
+
         elif self.etype == Etype.linear3:
 
             if (
-                (a := self.variables.get('a')) is not None and 
-                (b := self.variables.get('b')) is not None and 
+                (a := self.variables.get('a')) is not None and
+                (b := self.variables.get('b')) is not None and
                 (c := self.variables.get('c')) is not None and
-                (d := self.variables.get('d')) is not None and 
+                (d := self.variables.get('d')) is not None and
                 (y := self.variables.get('y')) is not None
             ):
                 a, b, c, d, y = num(a), num(b), num(c), num(d), num(y)
@@ -253,13 +253,13 @@ class EquationSolver:
                     d = num(terms.group(7))
                     d = -d if op2 == '-' else d
                 else:
-                    raise InvalidEquation() 
-            
+                    raise InvalidEquation()
+
             ab =  a + b
             cd = c + d
             xab = y * cd
             x = xab / ab
-            
+
             steps = (
                f'{self.equation or f"{y} = 𝑥({a} + {b}) / ({c} + {d})"}\n'+
                f'{y} = {ab}𝑥 / ({cd})\n'+
@@ -269,7 +269,7 @@ class EquationSolver:
                f'𝑥 = {x}\n'
             )
             return {
-                'm': ab, 
+                'm': ab,
                 'b': 0,
                 'x': x,
                 'y': xab,
@@ -279,11 +279,11 @@ class EquationSolver:
         elif self.etype == Etype.quadratic:
 
             if (
-                (a := self.variables.get('a')) is not None and 
-                (b := self.variables.get('b')) is not None and 
+                (a := self.variables.get('a')) is not None and
+                (b := self.variables.get('b')) is not None and
                 (c := self.variables.get('c')) is not None and
                 (y := self.variables.get('y')) is not None
-            ):  
+            ):
                 a, b, c, y = num(a), num(b), num(c), num(y)
             else:
                 if terms := re.match(fr'({NUM_PAT})=({NUM_PAT})x\^2(\+|-)({NUM_PAT})x(\+|-)({NUM_PAT})', self.equation):
@@ -299,7 +299,7 @@ class EquationSolver:
                     c = -c if op2 == '-' else c
                 else:
                     raise InvalidEquation()
-                
+
             cy = c - y
             a2 = 2 * a
             b24ac = b ** 2 - 4 * a * cy
@@ -351,12 +351,12 @@ class EquationSolver:
                 'y': y,
                 'steps': steps,
             }
-            
+
         elif self.etype == Etype.abcdformula:
 
             if (
-                (a := self.variables.get('a')) is not None and 
-                (b := self.variables.get('b')) is not None and 
+                (a := self.variables.get('a')) is not None and
+                (b := self.variables.get('b')) is not None and
                 (c := self.variables.get('c')) is not None and
                 (d := self.variables.get('d')) is not None
             ):
@@ -395,7 +395,7 @@ class ManualButton(discord.ui.Button):
         '÷': '/',
         '☐²': '^2'
     }
-    
+
     def __init__(self, label: str, *, style: discord.ButtonStyle = discord.ButtonStyle.grey, row: int):
         super().__init__(style=style, label=str(label), row=row)
 
@@ -413,7 +413,7 @@ class ManualButton(discord.ui.Button):
                 if self.view.etype == Etype.abcdformula:
                     steps = EquationSolver(self.view.equation, etype=self.view.etype).evaluate()
                     assert isinstance(steps, str)
-                    
+
                     embed = discord.Embed(
                         title='Solution:',
                         description=f'```py\n{steps}\n```',
@@ -473,8 +473,8 @@ class ManualModeView(AuthorOnlyView):
     buttons: tuple[tuple[int | str, ...], ...]
 
     def __init__(
-        self, 
-        ctx: MathContext, 
+        self,
+        ctx: MathContext,
         author: discord.User, *,
         etype: Etype,
         timeout: float = None
@@ -495,29 +495,29 @@ class ManualModeView(AuthorOnlyView):
                     discord.ButtonStyle.red if button in ('⌫', 'C', 'Close', 'ⓘ') else
                     discord.ButtonStyle.gray
                 )
-                
+
                 item = ManualButton(button, style=style, row=i)
 
                 if button == '\u200b':
                     item.disabled = True
-                    
+
                 self.add_item(item)
 
 class VarInput(discord.ui.Modal, title='Variable Input'):
-    
+
     def __init__(self, variable: str, button: VarButton) -> None:
         super().__init__()
-        
+
         self.variable = variable
         self.button = button
-        
+
         self.value = discord.ui.TextInput(
-            label=f'What do you want the value of {self.variable} to be?', 
+            label=f'What do you want the value of {self.variable} to be?',
             style=discord.TextStyle.short,
             required=True,
         )
         self.add_item(self.value)
-        
+
     async def on_submit(self, interaction: discord.Interaction) -> None:
         value = self.value.value
         try:
@@ -527,11 +527,11 @@ class VarInput(discord.ui.Modal, title='Variable Input'):
         else:
             self.button.value = num(value)
             self.button.view.equation_vars[self.button.label] = value
-            
+
             etype = self.button.view.etype
-            
+
             embed = em_from_etype(etype, color=self.button.view.ctx.bot.color)
-        
+
             remove_latex = self.button.view.latex_eq.replace(r'\frac', '\u0000')
             remove_latex = remove_latex.replace(r'\times', '\u0001')
 
@@ -550,7 +550,7 @@ class VarInput(discord.ui.Modal, title='Variable Input'):
                 self.button.view.children[-1].disabled = False
 
             return await interaction.response.edit_message(embed=embed, attachments=[img], view=self.button.view)
-            
+
 class VarButton(discord.ui.Button):
 
     view: EquationView
@@ -568,7 +568,7 @@ class VarButton(discord.ui.Button):
                 if self.view.etype == Etype.abcdformula:
                     steps = EquationSolver(etype=self.view.etype, **self.view.equation_vars).evaluate()
                     assert isinstance(steps, str)
-                    
+
                     embed = discord.Embed(
                         title='Solution:',
                         description=f'```py\n{steps}\n```',
@@ -603,7 +603,7 @@ class VarButton(discord.ui.Button):
             spaces = ' ' * 40
             embed = discord.Embed(description=f'```py\n\u200b{spaces}\u200b\n```', color=self.view.ctx.bot.color)
             return await interaction.response.edit_message(
-                embed=embed, 
+                embed=embed,
                 attachments=[],
                 view=ManualModeView(ctx, ctx.author, etype=self.view.etype, timeout=300)
             )
@@ -613,9 +613,9 @@ class VarButton(discord.ui.Button):
 class EquationView(AuthorOnlyView):
 
     def __init__(
-        self, 
-        ctx: MathContext, 
-        author: discord.User, *, 
+        self,
+        ctx: MathContext,
+        author: discord.User, *,
         etype: Etype,
         timeout: float = None
     ) -> None:
@@ -666,10 +666,10 @@ class EquationSelect(discord.ui.Select):
         if value == 'CALCULATOR':
             spaces = ' ' * 40
             return await interaction.response.edit_message(
-                embed=discord.Embed(description=f'```py\n\u200b{spaces}\u200b\n```', color=self.bot.color), 
+                embed=discord.Embed(description=f'```py\n\u200b{spaces}\u200b\n```', color=self.bot.color),
                 view=CalculatorView(self.view.ctx, self.view.ctx.author, timeout=300)
             )
-        
+
         etype = Etype[value]
 
         equation = etype.value['latex']
@@ -683,8 +683,8 @@ class EquationSelect(discord.ui.Select):
 class SelectView(AuthorOnlyView):
 
     def __init__(
-        self, 
-        ctx: MathContext, 
+        self,
+        ctx: MathContext,
         author: discord.User, *,
         timeout: float = None
     ) -> None:
@@ -695,7 +695,7 @@ class SelectView(AuthorOnlyView):
         self.add_item(EquationSelect(self.ctx.bot))
 
 class EquationsCog(commands.Cog):
-    
+
     def __init__(self, bot: MathBot) -> None:
         self.bot = bot
 

@@ -11,8 +11,8 @@ from .context import MathContext
 NUM_PAT = r'\d+\.?\d*'
 
 class Calculator:
-    operators: ClassVar[tuple[str, ...]] = ("/", "*", "-", "+")    
-       
+    operators: ClassVar[tuple[str, ...]] = ("/", "*", "-", "+")
+
     def __init__(self, expression: str) -> None:
         self.expression = expression
 
@@ -36,7 +36,7 @@ class Calculator:
                 "*": lambda x, y: x*y,
                 "-": lambda x, y: x-y,
                 "+": lambda x, y: x+y,
-            }   
+            }
             return str(conv.get(operator)(x, y))
         try:
             self.expression = re.sub(
@@ -52,7 +52,7 @@ class CalcButton(discord.ui.Button):
         '×': '*',
         '÷': '/',
     }
-    
+
     def __init__(self, label: str, *, style: discord.ButtonStyle = discord.ButtonStyle.grey, row: int, custom_id: str = None):
         super().__init__(style=style, label=str(label), row=row, custom_id=custom_id)
 
@@ -109,9 +109,9 @@ class CalculatorView(AuthorOnlyView):
     )
 
     def __init__(
-        self, 
-        ctx: MathContext, 
-        author: discord.User, *, 
+        self,
+        ctx: MathContext,
+        author: discord.User, *,
         timeout: float = None
     ) -> None:
 
@@ -128,7 +128,7 @@ class CalculatorView(AuthorOnlyView):
                     discord.ButtonStyle.red if button in ('⌫', 'C', 'Close', 'ⓘ') else
                     discord.ButtonStyle.gray
                 )
-                
+
                 item = CalcButton(button, style=style, row=i)
                 if button == '\u200b':
                     item.disabled = True
